@@ -45,6 +45,6 @@ done
 # on applique les modification si besoin
 if [ $NEWDOMAIN ];
 then
-  /bin/systemctl reload apache2
-  /bin/systemctl reload nginx
+  service apache2 reload
+  service nginx reload
 fi

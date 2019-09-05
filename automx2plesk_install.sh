@@ -154,10 +154,14 @@ server {
 }
 EOF
 fi
+if [ ! -d "/etc/nginx/plesk.conf.d/automx" ];
+then
+  mkdir -p /etc/nginx/plesk.conf.d/automx
+fi
 
 if [ ! -f "/etc/nginx/plesk.conf.d/automx.conf" ];
 then
-  echo -e "\e[0mInstallation de /etc/nginx/plesk.conf.d/automx.conf"
+  echo -e "\e[0mInstallation de /etc/apache2/plesk.conf.d/automx.conf"
   cat > /etc/apache2/plesk.conf.d/automx.conf <<EOF
 #ATTENTION!
 #
@@ -213,6 +217,10 @@ then
         </VirtualHost>
 </IfModule>
 EOF
+fi
+if [ ! -d "/etc/apache2/plesk.conf.d/automx" ];
+then
+  mkdir -p /etc/apache2/plesk.conf.d/automx
 fi
 
 /bin/bash /opt/automx/automx2plesk_update.sh
