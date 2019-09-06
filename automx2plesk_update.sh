@@ -25,7 +25,7 @@ do
 #
 #DO NOT MODIFY THIS FILE BECAUSE IT WAS GENERATED AUTOMATICALLY,
 #SO ALL YOUR CHANGES WILL BE LOST THE NEXT TIME THE FILE IS GENERATED.
-server_name "autoconfig.$DOMAIN autdiscover.$DOMAIN"
+server_name "autoconfig.$DOMAIN autodiscover.$DOMAIN"
 EOF
   fi
   # fichiers apache2
@@ -37,7 +37,7 @@ EOF
 #
 #DO NOT MODIFY THIS FILE BECAUSE IT WAS GENERATED AUTOMATICALLY,
 #SO ALL YOUR CHANGES WILL BE LOST THE NEXT TIME THE FILE IS GENERATED.
-ServerAlias "autoconfig.$DOMAIN autdiscover.$DOMAIN"
+ServerAlias "autoconfig.$DOMAIN autodiscover.$DOMAIN"
 EOF
   fi
 done

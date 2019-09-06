@@ -31,10 +31,10 @@ echo -e "\e[0mInstallation d'automx pour plesk"
 echo -e "Mise à jour des dépôts et installation d'automx et ses dépendances"
 #apt update && apt -y upgrade
 echo -e "\e[0mMise à jour du systeme : \e[32mOk"
-#checkDependency "python-sqlalchimy"
-#checkDependency "python-m2crypto"
-#checkDependency "python-lxml"
-#checkDependency "automx"
+checkDependency "python-sqlalchemy"
+checkDependency "python-m2crypto"
+checkDependency "python-lxml"
+checkDependency "automx"
 
 
 # Configuration d'automx
