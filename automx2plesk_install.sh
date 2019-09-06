@@ -13,7 +13,7 @@ function checkDependency() {
 	then
 		echo -e "\e[0mInstallation de '$1'"
 		apt -y install $1
-                echo -e "\e[0mInstallation de $1 :  \e[32mOk"
+                echo -e "\e[0mInstallation de $1 :  \e[32mOk\e[0"
 	fi
 }
 
@@ -31,12 +31,17 @@ echo -e "\e[0mInstallation d'automx pour plesk"
 echo -e "Mise à jour des dépôts et installation d'automx et ses dépendances"
 #apt update && apt -y upgrade
 echo -e "\e[0mMise à jour du systeme : \e[32mOk"
+checkDependency "curl"
+checkDependency "wget"
 checkDependency "python-sqlalchemy"
 checkDependency "python-m2crypto"
 checkDependency "python-lxml"
 checkDependency "automx"
 
-
+# IP publique
+MYIP=`curl ifconfig.me`
+# Certificat psa
+CERT=/opt/psa/var/certificates/`ls -t /opt/psa/var/certificates | head -n1`
 # Configuration d'automx
 PASSWORD=`cat /etc/psa/.psa.shadow`
 cat > /etc/automx.conf <<EOF
@@ -67,7 +72,7 @@ account_name_short = ATD16
 [global]
 backend = sql
 action = settings
-host = mysql://admin:$PASSWORD>@localhost/psa
+host = mysql://admin:$PASSWORD@localhost/psa
 query = SELECT CONCAT(m.mail_name,'@',d.name) AS 'mail_addr', d.name AS domain_name, u.contactName AS account_name FROM mail AS m LEFT JOIN domains AS d ON m.dom_id=d.id LEFT JOIN Subscriptions AS s ON d.id=s.object_id LEFT JOIN smb_users AS u ON u.id=m.userID WHERE s.object_type='domain' AND CONCAT(m.mail_name,'@',d.name)='%s' AND u.isLocked=0;
 result_attrs = mail_addr, domain_name, account_name
 
@@ -79,8 +84,8 @@ account_name_short =
 # must contain the server certificate and all intermediate certificates. You
 # can simply CONCATenate these certificates.
 #sign_mobileconfig = yes
-#sign_cert = /path/to/cert
-#sign_key = /path/to/key
+#sign_cert = $CERT
+#sign_key = $CERT
 
 smtp = yes
 smtp_server = mail.\${domain_name}
@@ -108,6 +113,21 @@ pop_refresh_ttl = 6
 pop_auth_identity = \${mail_addr}
 EOF
 
+# Installation de /etc/nginx/conf.d/automx_nginx.conf
+if [ ! -f "/etc/nginx/conf.d/automx_nginx.conf" ];
+then
+  echo -e "\e[0mInstallation de /etc/nginx/conf.d/automx_nginx.conf"
+  cat > /etc/nginx/conf.d/automx_nginx.conf <<EOF
+#ATTENTION!
+#
+#DO NOT MODIFY THIS FILE BECAUSE IT WAS GENERATED AUTOMATICALLY,
+#SO ALL YOUR CHANGES WILL BE LOST THE NEXT TIME THE FILE IS GENERATED.
+include /etc/nginx/plesk.conf.d/automx.conf;
+EOF
+  echo -e "\e[32mOk\e[0m"
+fi
+
+# Installation de /etc/nginx/plesk.conf.d/automx.conf
 if [ ! -f "/etc/nginx/plesk.conf.d/automx.conf" ];
 then
   echo -e "\e[0mInstallation de /etc/nginx/plesk.conf.d/automx.conf"
@@ -118,17 +138,17 @@ then
 #SO ALL YOUR CHANGES WILL BE LOST THE NEXT TIME THE FILE IS GENERATED.
 
 server {
-        listen 178.170.124.75:443 ssl;
+        listen $MYIP:443 ssl;
         server_name autoconfig.* autodiscover.*;
 
-        ssl_certificate             /opt/psa/var/certificates/cert-zlxb8w;
-        ssl_certificate_key         /opt/psa/var/certificates/cert-zlxb8w;
+        ssl_certificate             $CERT;
+        ssl_certificate_key         $CERT;
         include "/etc/nginx/plesk.conf.d/automx/*.conf";
 
         client_max_body_size 128m;
 
         location / {
-                proxy_pass https://178.170.124.75:7081;
+                proxy_pass https://$MYIP:7081;
                 proxy_set_header Host \$host;
                 proxy_set_header X-Real-IP \$remote_addr;
                 proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
@@ -136,7 +156,7 @@ server {
 }
 
 server {
-        listen 178.170.124.75:80;
+        listen $MYIP:80;
         server_name autoconfig.* autodiscover.*;
         include "/etc/nginx/plesk.conf.d/automx/*.conf";
 
@@ -146,20 +166,25 @@ server {
                 root  /var/www/vhosts/default/htdocs;
         }
         location / {
-                proxy_pass http://178.170.124.75:7080;
+                proxy_pass http://$MYIP:7080;
                 proxy_set_header Host \$host;
                 proxy_set_header X-Real-IP \$remote_addr;
                 proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         }
 }
 EOF
+  echo -e "\e[32mOk\e[0m"
 fi
+
+# Création du répertoire /etc/nginx/plesk.conf.d/automx
 if [ ! -d "/etc/nginx/plesk.conf.d/automx" ];
 then
   mkdir -p /etc/nginx/plesk.conf.d/automx
+  echo -e "\e[0mCréation du répertoire /etc/nginx/plesk.conf.d/automx : \e[32mOk\e[0m" 
 fi
 
-if [ ! -f "/etc/nginx/plesk.conf.d/automx.conf" ];
+# Installation de /etc/apache2/plesk.conf.d/automx.conf
+if [ ! -f "/etc/apache2/plesk.conf.d/automx.conf" ];
 then
   echo -e "\e[0mInstallation de /etc/apache2/plesk.conf.d/automx.conf"
   cat > /etc/apache2/plesk.conf.d/automx.conf <<EOF
@@ -168,7 +193,7 @@ then
 #DO NOT MODIFY THIS FILE BECAUSE IT WAS GENERATED AUTOMATICALLY,
 #SO ALL YOUR CHANGES WILL BE LOST THE NEXT TIME THE FILE IS GENERATED.
 
-<VirtualHost 178.170.124.75:7080 127.0.0.1:7080>
+<VirtualHost $MYIP:7080 127.0.0.1:7080>
         ServerName autoconfig
         ServerAlias autoconfig.* autodiscover.*
         ServerAdmin serveurs_admin@atd16.fr
@@ -189,7 +214,7 @@ then
 </VirtualHost>
 
 <IfModule mod_ssl.c>
-        <VirtualHost 178.170.124.75:7081 127.0.0.1:7081>
+        <VirtualHost $MYIP:7081 127.0.0.1:7081>
                 ServerName autodiscover
                 ServerAlias autodiscover.*
                 ServerAdmin serveurs_admin@atd16.fr
@@ -201,7 +226,7 @@ then
 
                 SSLEngine on
                 SSLVerifyClient none
-                SSLCertificateFile "/opt/psa/var/certificates/cert-zlxb8w"
+                SSLCertificateFile "$CERT"
 
                 <IfModule mod_wsgi.c>
                         WSGIScriptAlias /Autodiscover/Autodiscover.xml /usr/lib/automx/automx_wsgi.py
@@ -217,10 +242,28 @@ then
         </VirtualHost>
 </IfModule>
 EOF
+  echo -e "\e[32mOk\e[0m"
 fi
+
 if [ ! -d "/etc/apache2/plesk.conf.d/automx" ];
 then
   mkdir -p /etc/apache2/plesk.conf.d/automx
+  echo -e "\e[0mCréation du répertoire /etc/apache2/plesk.conf.d/automx : \e[32mOk\e[0m" 
+fi
+
+# Installation de /etc/apache2/conf-available/automx_apache2.conf
+if [ ! -f "/etc/apache2/conf-available/automx_apache2.conf" ];
+then
+  echo -e "\e[0mInstallation de /etc/apache2/conf-available/automx_apache2.conf"
+  cat > /etc/apache2/conf-available/automx_apache2.conf <<EOF
+#ATTENTION!
+#
+#DO NOT MODIFY THIS FILE BECAUSE IT WAS GENERATED AUTOMATICALLY,
+#SO ALL YOUR CHANGES WILL BE LOST THE NEXT TIME THE FILE IS GENERATED.
+include '/etc/apache2/plesk.conf.d/automx.conf'
+EOF
+  echo -e "\e[32mOk\e[0m"
+  a2enconf automx_apache2
 fi
 
 /bin/bash /opt/automx/automx2plesk_update.sh

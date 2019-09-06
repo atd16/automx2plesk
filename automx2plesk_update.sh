@@ -13,7 +13,10 @@ NEWDOMAIN=0
 # Liste des domaines ayant le mail
 DOMAINS=`mysql --skip-column-names -uadmin -p$PASSWORD psa -e "SELECT name FROM domains AS dom LEFT JOIN DomainServices AS dos ON dom.id=dos.dom_id AND dos.type='mail' ORDER BY dom.name ASC; " | sort -u`;
 
-# Boucle sur cette liste our créer les fichiers s'il n'existent pas
+# RAZ des domaines pour nginx et apache2
+rm /etc/nginx/plesk.conf.d/automx/*.conf /etc/apache2/plesk.conf.d/automx/*.conf
+
+# Boucle sur cette liste pour créer les fichiers s'il n'existent pas
 for DOMAIN in $DOMAINS;
 do
   # fichiers nginx
@@ -25,7 +28,7 @@ do
 #
 #DO NOT MODIFY THIS FILE BECAUSE IT WAS GENERATED AUTOMATICALLY,
 #SO ALL YOUR CHANGES WILL BE LOST THE NEXT TIME THE FILE IS GENERATED.
-server_name "autoconfig.$DOMAIN autodiscover.$DOMAIN"
+server_name "autoconfig.$DOMAIN autodiscover.$DOMAIN";
 EOF
   fi
   # fichiers apache2
